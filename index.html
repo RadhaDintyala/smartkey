@@ -3,29 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arduino Access Control</title>
+  <title>Access Control Dashboard</title>
   <style>
     :root {
-      --primary: #F1B428;
-      --bg: #0d0f12;
-      --card-bg: #161a22;
-      --border: #2a313d;
-      --text: #ffffff;
-      --text-muted: #8b949e;
-      --success: #2ea043;
-      --danger: #f85149;
+      --bg-dark: #121212;
+      --bg-card: #1e1e1e;
+      --text-main: #e0e0e0;
+      --text-muted: #888888;
+      --accent-yellow: #ffb703;
+      --accent-yellow-hover: #fb8500;
+      --status-green: #4caf50;
+      --status-red: #f44336;
+      --border-color: #333333;
+      --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -33,270 +35,505 @@
       padding: 20px;
     }
 
-    .container {
+    .dashboard {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
       width: 100%;
-      max-width: 480px;
+      max-width: 600px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 18px;
     }
 
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+    /* Header */
+    header {
       padding: 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    /* Connection Header */
-    .header-bar {
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background-color: #1a1a1a;
     }
 
-    .status-badge {
-      display: inline-flex;
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent-yellow);
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .status-indicator {
+      display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
     }
 
-    .status-dot {
-      width: 10px;
-      height: 10px;
+    .dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: var(--danger);
-      transition: background 0.3s ease;
+      background-color: var(--status-red);
+      transition: background-color 0.3s;
     }
-
-    .status-dot.connected {
-      background: var(--success);
-      box-shadow: 0 0 10px var(--success);
+    
+    .dot.connected {
+      background-color: var(--status-green);
+      box-shadow: 0 0 8px var(--status-green);
     }
 
     /* Buttons */
     button {
-      cursor: pointer;
+      background-color: var(--border-color);
+      color: var(--text-main);
       border: none;
-      outline: none;
-      border-radius: 8px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
       font-weight: 600;
-      transition: all 0.2s ease;
+      transition: all 0.2s;
     }
 
-    .btn-connect {
-      background-color: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 14px;
-      font-size: 0.85rem;
+    button:hover:not(:disabled) {
+      background-color: #444;
     }
 
-    .btn-connect:hover {
-      border-color: var(--primary);
-      color: var(--primary);
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
-    /* Input & Form */
-    .input-wrapper {
+    .btn-primary {
+      background-color: var(--accent-yellow);
+      color: #000;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-yellow-hover);
+    }
+
+    /* Main Content */
+    main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Status Banner */
+    .status-banner {
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 1px;
+      background-color: #2a2a2a;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .status-banner.granted {
+      background-color: rgba(76, 175, 80, 0.1);
+      border-color: var(--status-green);
+      color: var(--status-green);
+      box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+    }
+
+    .status-banner.denied {
+      background-color: rgba(244, 67, 54, 0.1);
+      border-color: var(--status-red);
+      color: var(--status-red);
+      box-shadow: 0 0 15px rgba(244, 67, 54, 0.2);
+    }
+    
+    .status-banner.ready {
+      background-color: rgba(255, 183, 3, 0.1);
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+    }
+
+    /* Password Input Area */
+    .input-group {
+      display: flex;
+      gap: 10px;
       position: relative;
-      margin: 15px 0 12px;
+    }
+
+    .password-wrapper {
+      position: relative;
+      flex-grow: 1;
     }
 
     input[type="password"],
     input[type="text"] {
       width: 100%;
-      background: #090c10;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 44px 14px 16px;
-      font-size: 1.1rem;
-      color: var(--text);
-      letter-spacing: 1.5px;
+      padding: 12px 45px 12px 15px;
+      background-color: #121212;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 6px;
+      font-size: 1rem;
       outline: none;
       transition: border-color 0.2s;
     }
 
     input:focus {
-      border-color: var(--primary);
+      border-color: var(--accent-yellow);
     }
 
-    .toggle-visibility {
+    .toggle-pwd {
       position: absolute;
-      right: 12px;
+      right: 5px;
       top: 50%;
       transform: translateY(-50%);
       background: none;
+      border: none;
       color: var(--text-muted);
-      font-size: 0.8rem;
-      padding: 4px;
+      padding: 5px 10px;
+    }
+    
+    .toggle-pwd:hover:not(:disabled) {
+      color: var(--accent-yellow);
+      background: none;
     }
 
-    .btn-submit {
-      width: 100%;
-      background-color: var(--primary);
-      color: #000;
-      padding: 14px;
-      font-size: 1rem;
-      margin-top: 6px;
-    }
-
-    .btn-submit:hover:not(:disabled) {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
-    }
-
-    .btn-submit:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* Alert Banner */
-    .alert-banner {
-      display: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-align: center;
-      margin-top: 10px;
-    }
-
-    .alert-banner.granted {
-      display: block;
-      background: rgba(46, 160, 67, 0.15);
-      color: var(--success);
-      border: 1px solid var(--success);
-    }
-
-    .alert-banner.denied {
-      display: block;
-      background: rgba(248, 81, 73, 0.15);
-      color: var(--danger);
-      border: 1px solid var(--danger);
-    }
-
-    /* Terminal Console */
-    .terminal-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .terminal {
-      background: #090c10;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      height: 140px;
-      padding: 12px;
-      overflow-y: auto;
-      font-family: "Courier New", Courier, monospace;
-      font-size: 0.82rem;
-      line-height: 1.5;
+    /* Terminal */
+    .terminal-section {
       display: flex;
       flex-direction: column;
+      gap: 10px;
     }
 
-    .log-entry {
+    .terminal-header {
+      font-size: 0.9rem;
       color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
     }
 
-    .log-entry.in {
-      color: var(--primary);
+    .terminal-window {
+      background-color: #0a0a0a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      height: 200px;
+      padding: 10px;
+      overflow-y: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
     }
 
-    .log-entry.out {
-      color: #58a6ff;
+    .log-time { color: #555; }
+    .log-tx { color: var(--accent-yellow); }
+    .log-rx { color: #4fc3f7; }
+    .log-sys { color: var(--text-muted); font-style: italic; }
+
+    /* Browser compatibility warning */
+    #unsupported-warning {
+      display: none;
+      background-color: var(--status-red);
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- Header & Connection Card -->
-    <div class="card header-bar">
-      <div class="status-badge">
-        <div id="statusDot" class="status-dot"></div>
-        <span id="statusText">Disconnected</span>
-      </div>
-      <button id="connectBtn" class="btn-connect">Connect Board</button>
+  <div class="dashboard">
+    <div id="unsupported-warning">
+      Web Serial API is not supported in this browser. Please use Chrome, Edge, or Opera.
     </div>
 
-    <!-- Security Keypad Card -->
-    <div class="card">
-      <h2 style="font-size: 1.15rem; font-weight: 600;">Access Authentication</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">
-        Enter credentials to authorize hardware trigger.
-      </p>
-
-      <form id="authForm">
-        <div class="input-wrapper">
-          <input type="password" id="passwordInput" placeholder="Enter system key..." autocomplete="off">
-          <button type="button" id="togglePass" class="toggle-visibility">SHOW</button>
+    <header>
+      <div class="header-title">Access Control</div>
+      <div class="connection-status">
+        <div class="status-indicator">
+          <div class="dot" id="status-dot"></div>
+          <span id="status-text">Disconnected</span>
         </div>
-        <button type="submit" id="submitBtn" class="btn-submit" disabled>Transmit Key</button>
-      </form>
+        <button id="btn-connect" class="btn-primary">Connect Board</button>
+      </div>
+    </header>
 
-      <div id="alertBanner" class="alert-banner"></div>
-    </div>
+    <main>
+      <!-- Dynamic Banner -->
+      <div id="status-banner" class="status-banner">
+        AWAITING CONNECTION...
+      </div>
 
-    <!-- Live Serial Stream Console -->
-    <div class="card">
-      <div class="terminal-title">Serial Stream (9600 Baud)</div>
-      <div id="terminal" class="terminal"></div>
-    </div>
+      <!-- Password Card -->
+      <div class="input-group">
+        <div class="password-wrapper">
+          <input type="password" id="pwd-input" placeholder="Enter PIN / Password" disabled>
+          <button type="button" class="toggle-pwd" id="btn-toggle-pwd" disabled>Show</button>
+        </div>
+        <button id="btn-submit" class="btn-primary" disabled>Transmit</button>
+      </div>
+
+      <!-- Terminal Card -->
+      <div class="terminal-section">
+        <div class="terminal-header">
+          <span>Live Serial Terminal (9600 Baud)</span>
+          <button id="btn-clear-term" style="padding: 2px 8px; font-size: 0.8rem;">Clear</button>
+        </div>
+        <div class="terminal-window" id="terminal"></div>
+      </div>
+    </main>
   </div>
 
   <script>
-    let port = null;
-    let writer = null;
-    let reader = null;
-    let keepReading = false;
-
-    const connectBtn = document.getElementById('connectBtn');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const submitBtn = document.getElementById('submitBtn');
-    const passwordInput = document.getElementById('passwordInput');
-    const togglePass = document.getElementById('togglePass');
-    const alertBanner = document.getElementById('alertBanner');
+    // --- DOM Elements ---
+    const btnConnect = document.getElementById('btn-connect');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const statusBanner = document.getElementById('status-banner');
+    
+    const pwdInput = document.getElementById('pwd-input');
+    const btnTogglePwd = document.getElementById('btn-toggle-pwd');
+    const btnSubmit = document.getElementById('btn-submit');
+    
     const terminal = document.getElementById('terminal');
-    const authForm = document.getElementById('authForm');
+    const btnClearTerm = document.getElementById('btn-clear-term');
+    const unsupportedWarning = document.getElementById('unsupported-warning');
 
-    // Verify browser support for Web Serial API
+    // --- State & Serial Variables ---
+    let port;
+    let reader;
+    let writer;
+    let keepReading = false;
+    let readBuffer = '';
+    const textEncoder = new TextEncoder();
+    const textDecoder = new TextDecoder();
+
+    // Check Browser Support
     if (!('serial' in navigator)) {
-      logTerminal('Web Serial API is not supported in this browser. Use Chrome or Edge.', 'out');
-      connectBtn.disabled = true;
-      connectBtn.textContent = 'Unsupported Browser';
+      unsupportedWarning.style.display = 'block';
+      btnConnect.disabled = true;
+      logToTerminal('System', 'Web Serial API not supported in this browser.', 'log-sys');
+    } else {
+      logToTerminal('System', 'Web Serial API is ready.', 'log-sys');
     }
 
-    // Toggle Port Connection
-    connectBtn.addEventListener('click', async () => {
+    // --- UI Interactions ---
+    
+    // Connect / Disconnect Toggle
+    btnConnect.addEventListener('click', async () => {
       if (port) {
-        await disconnectSerial();
+        await disconnectBoard();
       } else {
-        await connectSerial();
+        await connectBoard();
       }
     });
 
-    async function connectSerial() {
+    // Password Visibility Toggle
+    btnTogglePwd.addEventListener('click', () => {
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        btnTogglePwd.textContent = 'Hide';
+      } else {
+        pwdInput.type = 'password';
+        btnTogglePwd.textContent = 'Show';
+      }
+    });
+
+    // Transmit Password (Button)
+    btnSubmit.addEventListener('click', transmitPassword);
+
+    // Transmit Password (Enter Key)
+    pwdInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !btnSubmit.disabled) {
+        transmitPassword();
+      }
+    });
+
+    // Clear Terminal
+    btnClearTerm.addEventListener('click', () => {
+      terminal.innerHTML = '';
+    });
+
+    // --- Core Logic ---
+
+    async function connectBoard() {
       try {
-        // Request access to Arduino COM Port
+        // Request a port and open it
         port = await navigator.serial.requestPort();
         await port.open({ baudRate: 9600 });
+        
+        // Update UI State
+        setConnectionState(true);
+        logToTerminal('System', 'Connected to Arduino (9600 baud).', 'log-sys');
 
+        // Setup streaming
+        keepReading = true;
+        readLoop();
+      } catch (err) {
+        console.error('Connection error:', err);
+        logToTerminal('System', `Failed to connect: ${err.message}`, 'log-sys');
+      }
+    }
+
+    async function disconnectBoard() {
+      try {
+        keepReading = false;
+        
+        // Force the reader to cancel so the loop breaks
+        if (reader) {
+          await reader.cancel();
+        }
+        
+        // Close the port
+        if (port) {
+          await port.close();
+        }
+      } catch (err) {
+        console.error('Disconnect error:', err);
+      } finally {
+        port = null;
+        setConnectionState(false);
+        logToTerminal('System', 'Disconnected from board.', 'log-sys');
+      }
+    }
+
+    async function readLoop() {
+      while (port.readable && keepReading) {
+        reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            if (value) {
+              // Decode Uint8Array to string and add to buffer
+              readBuffer += textDecoder.decode(value, { stream: true });
+              
+              // Process complete lines ending with \n
+              let lines = readBuffer.split('\n');
+              readBuffer = lines.pop(); // Keep the last incomplete fragment in the buffer
+              
+              for (const line of lines) {
+                const cleanLine = line.replace('\r', '').trim();
+                if (cleanLine.length > 0) {
+                  logToTerminal('Recv', cleanLine, 'log-rx');
+                  processArduinoMessage(cleanLine);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Read error:', error);
+          logToTerminal('System', 'Serial read error occurred.', 'log-sys');
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    }
+
+    async function transmitPassword() {
+      if (!port || !port.writable) return;
+
+      const password = pwdInput.value;
+      if (!password) return;
+
+      try {
+        writer = port.writable.getWriter();
+        // Append newline as required by Arduino's readStringUntil('\n')
+        const payload = password + '\n';
+        
+        // Encode and send
+        await writer.write(textEncoder.encode(payload));
+        
+        // Log masked input to terminal
+        const masked = '*'.repeat(password.length);
+        logToTerminal('Sent', `[${masked}]\\n`, 'log-tx');
+        
+        // Clear input
+        pwdInput.value = '';
+      } catch (err) {
+        console.error('Write error:', err);
+        logToTerminal('System', 'Failed to send data.', 'log-sys');
+      } finally {
+        if (writer) {
+          writer.releaseLock();
+        }
+      }
+    }
+
+    function processArduinoMessage(msg) {
+      // Clear all banner classes
+      statusBanner.className = 'status-banner';
+      
+      if (msg === 'SYSTEM READY') {
+        statusBanner.textContent = 'SYSTEM READY';
+        statusBanner.classList.add('ready');
+      } 
+      else if (msg === 'ACCESS GRANTED') {
+        statusBanner.textContent = 'ACCESS GRANTED - UNLOCKED';
+        statusBanner.classList.add('granted');
+      } 
+      else if (msg === 'ACCESS DENIED') {
+        statusBanner.textContent = 'ACCESS DENIED - MISMATCH';
+        statusBanner.classList.add('denied');
+      }
+    }
+
+    // --- Helper Functions ---
+
+    function setConnectionState(isConnected) {
+      if (isConnected) {
+        btnConnect.textContent = 'Disconnect';
+        btnConnect.classList.remove('btn-primary');
         statusDot.classList.add('connected');
         statusText.textContent = 'Connected';
-        connectBtn.textContent = 'Disconnect';
-        submitBtn.disabled = false;
-        logTerminal('Serial Port opened at 9600 baud.', 'out');
+        statusBanner.textContent = 'CONNECTED - WAITING FOR READY...';
+        
+        // Enable Inputs
+        pwdInput.disabled = false;
+        btnTogglePwd.disabled = false;
+        btnSubmit.disabled = false;
+        pwdInput.focus();
+      } else {
+        btnConnect.textContent = 'Connect Board';
+        btnConnect.classList.add('btn-primary');
+        statusDot.classList.remove('connected');
+        statusText.textContent = 'Disconnected';
+        
+        // Reset Banner
+        statusBanner.className = 'status-banner';
+        statusBanner.textContent = 'AWAITING CONNECTION...';
+        
+        // Disable Inputs
+        pwdInput.disabled = true;
+        btnTogglePwd.disabled = true;
+        btnSubmit.disabled = true;
+        pwdInput.value = '';
+      }
+    }
 
-        keepReading =
+    function logToTerminal(direction, message, cssClass) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour12: false });
+      
+      const line = document.createElement('div');
+      
+      let arrow = '';
+      if (direction === 'Sent') arrow = '-> ';
+      if (direction === 'Recv') arrow = '<- ';
+      if (direction === 'System') arrow = '-- ';
+      
+      line.innerHTML = `<span class="log-time">[${timeStr}]</span> ${arrow}<span class="${cssClass}">${message}</span>`;
+      
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight; // Auto-scroll to bottom
+    }
+  </script>
